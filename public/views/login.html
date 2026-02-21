@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - TicoAutos</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="auth-wrapper">
+        <div class="auth-visual">
+            <div class="visual-content">
+                <h2>TicoAutos</h2>
+                <p>Encuentra el auto de tus sueños o vende el tuyo en minutos.</p>
+            </div>
+        </div>
+
+        <div class="auth-form-side">
+            <div class="form-container">
+                <h1>Bienvenido</h1>
+                <p class="subtitle">Ingresa tus credenciales para continuar</p>
+
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="cedula">Cédula</label>
+                        <input type="text" id="cedula" name="cedula" placeholder="Ej: 208790566" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Contraseña</label>
+                        <input type="password" id="password" name="password" placeholder="••••••••" required>
+                    </div>
+
+                    <button type="submit" class="btn">Acceder al Sistema</button>
+                </form>
+
+                <div class="footer-link">
+                    ¿Nuevo en TicoAutos? <a href="/register">Crea una cuenta</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+</body>
+
+</html>

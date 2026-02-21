@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - TicoAutos</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body class="home-body">
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/home" class="logo">TicoAutos</a>
+            <div class="nav-actions">
+                <a href="/login" class="nav-link" id="auth-link">Iniciar Sesión</a>
+                <a href="/register" class="btn btn-sm" id="register-link">Registrarse</a>
+                <div id="user-menu" style="display: none;">
+                    <span id="username-display"></span>
+                    <button id="logout-btn" class="btn btn-sm btn-outline">Salir</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="home-hero">
+        <div class="container">
+            <h1>Explora nuestra flota</h1>
+            <p>Filtra por marca, precio o año para encontrar tu auto ideal.</p>
+        </div>
+    </header>
+
+    <main class="container main-layout">
+        <aside class="sidebar">
+            <div class="filter-card-sidebar">
+                <div class="sidebar-header">
+                    <h3><i class="fas fa-filter"></i> Filtros</h3>
+                    <button type="reset" form="filter-form" class="btn-reset">Limpiar</button>
+                </div>
+
+                <form id="filter-form" class="sidebar-filters">
+                    <div class="filter-group">
+                        <label for="brand">Marca</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-tag"></i>
+                            <input type="text" id="brand" name="brand" placeholder="Ej: Toyota">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="model">Modelo</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-car-side"></i>
+                            <input type="text" id="model" name="model" placeholder="Ej: Corolla">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Año (Rango)</label>
+                        <div class="range-inputs">
+                            <input type="number" id="minYear" name="minYear" placeholder="Desde">
+                            <input type="number" id="maxYear" name="maxYear" placeholder="Hasta">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Precio (Rango)</label>
+                        <div class="range-inputs">
+                            <input type="number" id="minPrice" name="minPrice" placeholder="Mín">
+                            <input type="number" id="maxPrice" name="maxPrice" placeholder="Máx">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="status">Estado</label>
+                        <select id="status" name="status">
+                            <option value="">Todos</option>
+                            <option value="disponible">Disponible</option>
+                            <option value="vendido">Vendido</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-search-sidebar">
+                        Actualizar Resultados
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <section class="content-area">
+            <div class="results-header">
+                <h2 id="results-count">Cargando anuncios...</h2>
+                <div class="view-options">
+                    <!-- Placeholder for sorting or view toggle -->
+                </div>
+            </div>
+
+            <div id="vehicles-grid" class="sidebar-grid">
+                <!-- Vehicles will be loaded here -->
+                <div class="loader">
+                    <i class="fas fa-circle-notch fa-spin"></i>
+                    <span>Buscando los mejores autos...</span>
+                </div>
+            </div>
+
+            <div class="pagination" id="pagination-controls">
+                <!-- Pagination buttons here -->
+            </div>
+        </section>
+    </main>
+
+    <script src="/js/home.js"></script>
+</body>
+
+</html>

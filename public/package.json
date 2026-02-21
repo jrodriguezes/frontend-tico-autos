@@ -1,0 +1,17 @@
+{
+  "name": "frontend-tico-autos",
+  "version": "1.0.0",
+  "description": "frontend-tico-autos",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.js"
+  },
+  "author": "jeremy",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1",
+    "nodemon": "^3.1.14",
+    "path": "^0.12.7"
+  }
+}

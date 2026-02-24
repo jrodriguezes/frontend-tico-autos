@@ -18,6 +18,10 @@ app.get("/home", (req, res) => {
     res.sendFile(path.join(__dirname, "views", "home.html"));
 });
 
+app.get("/stock", (req, res) => {
+    res.sendFile(path.join(__dirname, "views", "stock.html"));
+});
+
 app.listen(3001, () => {
     console.log("Server is running on port 3001");
 });

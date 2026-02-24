@@ -1,0 +1,108 @@
+/* Auth (Login/Register) Styles */
+.auth-wrapper {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+}
+
+.auth-visual {
+    flex: 1.2;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem;
+    overflow: hidden;
+}
+
+.auth-visual::before {
+    content: '';
+    position: absolute;
+    width: 150%;
+    height: 150%;
+    background: radial-gradient(circle at center, rgba(37, 99, 235, 0.15) 0%, transparent 70%);
+    z-index: 1;
+}
+
+.visual-content {
+    position: relative;
+    z-index: 2;
+    max-width: 500px;
+}
+
+.visual-content h2 {
+    font-size: 3.5rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(to bottom right, #fff, var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.visual-content p {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.auth-form-side {
+    flex: 0.8;
+    background: var(--bg-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    border-left: 1px solid var(--border);
+}
+
+.form-container {
+    width: 100%;
+    max-width: 400px;
+    animation: slideIn 0.6s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    margin-bottom: 2.5rem;
+    font-size: 1rem;
+}
+
+.footer-link {
+    margin-top: 2rem;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.footer-link a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    margin-left: 0.5rem;
+}
+
+@media (max-width: 1024px) {
+    .auth-visual {
+        display: none;
+    }
+
+    .auth-form-side {
+        flex: 1;
+        border-left: none;
+    }
+}

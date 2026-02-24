@@ -1,0 +1,241 @@
+/* Stock Page Styles */
+.stock-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-top: 2rem;
+}
+
+.stock-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+}
+
+.admin-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 1.25rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+}
+
+.admin-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-5px);
+}
+
+.admin-card-img {
+    height: 180px;
+    background: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.admin-card-img i {
+    font-size: 3rem;
+    color: var(--border);
+}
+
+.admin-card-content {
+    padding: 1.5rem;
+    flex-grow: 1;
+}
+
+.admin-card-actions {
+    padding: 1rem 1.5rem;
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+    gap: 0.75rem;
+    border-top: 1px solid var(--border);
+}
+
+.btn-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-icon:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-icon.btn-delete:hover {
+    background: var(--error);
+    border-color: var(--error);
+}
+
+.btn-icon.btn-success:hover {
+    background: #10b981;
+    border-color: #10b981;
+}
+
+.stock-empty {
+    text-align: center;
+    padding: 5rem 2rem;
+    background: var(--bg-surface);
+    border-radius: 1.5rem;
+    border: 2px dashed var(--border);
+}
+
+/* Modal Multi-Step (Slide) Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 3000;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(8px);
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.modal-content {
+    background: var(--bg-surface);
+    width: 100%;
+    max-width: 550px;
+    border-radius: 1.5rem;
+    border: 1px solid var(--border);
+    padding: 0;
+    position: relative;
+    animation: modalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+    transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.9) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-header-wrapper {
+    padding: 2.5rem 2.5rem 1rem;
+}
+
+.close-modal {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    z-index: 10;
+}
+
+/* Stepper Progress Indicator */
+.stepper-container {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0 2.5rem 1.5rem;
+}
+
+.step-dot {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    transition: all 0.3s;
+}
+
+.step-dot.active {
+    background: var(--primary);
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.3);
+}
+
+/* Slide Container */
+.modal-form-container {
+    display: flex;
+    width: 200%;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    align-items: flex-start;
+}
+
+.form-step {
+    width: 50%;
+    padding: 0 2.5rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-form-container.step-2-active {
+    transform: translateX(-50%);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.form-full {
+    grid-column: span 2;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+/* File Upload Styles */
+.file-upload-wrapper {
+    width: 100%;
+}
+
+.file-upload-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: rgba(30, 41, 59, 0.3);
+    border: 2px dashed var(--border);
+    border-radius: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.file-upload-label:hover {
+    border-color: var(--primary);
+    background: rgba(37, 99, 235, 0.05);
+    color: var(--text-primary);
+}
+
+.file-upload-label i {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    color: var(--primary);
+}
+
+.file-upload-label span {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+@media (max-width: 640px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    .form-full {
+        grid-column: span 1;
+    }
+}

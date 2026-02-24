@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const vehiclesGrid = document.getElementById('vehicles-grid');
     const resultsCount = document.getElementById('results-count');
     const paginationControls = document.getElementById('pagination-controls');
-    
+
     let currentPage = 1;
     let totalPages = 1;
 
@@ -22,15 +22,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchVehicles() {
         showLoader();
-        
+
         const formData = new FormData(filterForm);
         const params = new URLSearchParams();
-        
+
         // Add filters to query params
         for (const [key, value] of formData.entries()) {
             if (value) params.append(key, value);
         }
-        
+
         // Add pagination
         params.append('page', currentPage);
         params.append('limit', 9);
@@ -148,7 +148,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('register-link').style.display = 'none';
         document.getElementById('user-menu').style.display = 'flex';
         // Mocking user name from token (ideally decode JWT)
-        document.getElementById('username-display').textContent = 'Mi Cuenta';
+        if (document.getElementById('username-display')) {
+            document.getElementById('username-display').textContent = 'Mi Cuenta';
+        } else if (document.getElementById('my-account-btn')) {
+            document.getElementById('my-account-btn').textContent = 'Mi Cuenta';
+        }
     }
 
     document.getElementById('logout-btn')?.addEventListener('click', () => {

@@ -4,8 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (registerForm) {
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const numberId = document.getElementById('cedula').value;
-            const name = document.getElementById('nombre').value;
+            const numberId = document.getElementById('numberId').value;
+            const name = document.getElementById('name').value;
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm-password').value;
 
@@ -30,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (response.ok) {
-                    alert("¡Registro exitoso! Ya puedes iniciar sesión.");
                     window.location.href = "/login";
                 } else {
                     alert(data.message || "Error al registrar el usuario");

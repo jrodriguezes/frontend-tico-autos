@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const numberId = document.getElementById('cedula').value;
+            const numberId = document.getElementById('numberId').value;
             const password = document.getElementById('password').value;
 
             console.log('Login attempt:', { numberId, password });

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Especificaciones - TicoAutos</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/specification.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body class="specification-body">
+    <nav class="navbar scrolled">
+        <div class="nav-container">
+            <a href="/home" class="logo">TicoAutos</a>
+            <div class="nav-actions">
+                <a href="/home" class="nav-link">Inicio</a>
+                <div id="user-menu" style="display: none; gap: 1rem; align-items: center;">
+                    <a href="/stock" class="btn btn-sm btn-outline">Mi Cuenta</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="specification-container">
+        <!-- Header: Brand, Model and Price -->
+        <header class="spec-header">
+            <div class="spec-title-group">
+                <h1 id="v-title-display">Cargando vehículo...</h1>
+                <span class="price-tag" id="v-price-display">$0</span>
+            </div>
+            <div id="v-status-badge" class="status-indicator">
+                <!-- Status badge injected here -->
+            </div>
+        </header>
+
+        <section class="spec-layout">
+            <!-- Left Side: Image and Key Details -->
+            <div class="main-content">
+                <div class="image-gallery">
+                    <img id="image-preview" src="" alt="Vista del Vehículo" class="main-image" style="display: none;">
+                    <div id="image-placeholder" class="image-placeholder">
+                        <i class="fas fa-car-side"></i>
+                        <span>No hay imagen disponible</span>
+                    </div>
+                </div>
+
+                <div class="details-grid">
+                    <div class="detail-card">
+                        <i class="fas fa-tag"></i>
+                        <span class="detail-label">Marca</span>
+                        <span class="detail-value" id="v-brand-display">-</span>
+                        <input type="hidden" id="v-brand"> <!-- Hidden for script compatibility -->
+                    </div>
+                    <div class="detail-card">
+                        <i class="fas fa-car-side"></i>
+                        <span class="detail-label">Modelo</span>
+                        <span class="detail-value" id="v-model-display">-</span>
+                        <input type="hidden" id="v-model">
+                    </div>
+                    <div class="detail-card">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span class="detail-label">Año</span>
+                        <span class="detail-value" id="v-year-display">-</span>
+                        <input type="hidden" id="v-year">
+                    </div>
+                    <div class="detail-card">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span class="detail-label">Kilometraje</span>
+                        <span class="detail-value" id="v-mileage-display">-</span>
+                        <input type="hidden" id="v-mileage">
+                    </div>
+                    <div class="detail-card">
+                        <i class="fas fa-id-card"></i>
+                        <span class="detail-label">Placa</span>
+                        <span class="detail-value" id="v-plate-display">-</span>
+                        <input type="hidden" id="v-plateId">
+                    </div>
+                    <div class="detail-card">
+                        <i class="fas fa-dollar-sign"></i>
+                        <span class="detail-label">Precio</span>
+                        <span class="detail-value" id="v-detail-price">-</span>
+                        <input type="hidden" id="v-price">
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3><i class="fas fa-info-circle"></i> Descripción y Observaciones</h3>
+                    <p class="observations-text" id="v-observations-display">
+                        Sin observaciones adicionales.
+                    </p>
+                    <textarea id="v-observations" style="display: none;"></textarea>
+                    <input type="hidden" id="v-status">
+                    <input type="hidden" id="v-image">
+                </div>
+            </div>
+
+            <!-- Right Side: Contact / Actions -->
+            <aside class="sidebar-actions">
+                <div class="action-card">
+                    <div class="seller-info">
+                        <div class="seller-avatar" id="seller-avatar">V</div>
+                        <div class="seller-details">
+                            <span class="seller-label">Vendido por</span>
+                            <span class="seller-name" id="seller-name">Vendedor Privado</span>
+                        </div>
+                    </div>
+                    <a href="#" class="btn btn-primary" id="contact-seller">
+                        <i class="fas fa-phone-alt"></i> Contactar Vendedor
+                    </a>
+                    <a href="/home" class="btn btn-outline">
+                        <i class="fas fa-arrow-left"></i> Volver al Catálogo
+                    </a>
+                </div>
+
+                <div class="action-card" style="margin-top: 1rem; border-color: rgba(56, 189, 248, 0.2);">
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">
+                        <i class="fas fa-shield-alt" style="color: var(--accent); margin-right: 0.5rem;"></i>
+                        Compra segura garantizada por <strong>TicoAutos</strong>. Revisa el vehículo antes de realizar
+                        cualquier pago.
+                    </p>
+                </div>
+            </aside>
+        </section>
+    </main>
+
+    <script src="/js/vehicleSpecification.js"></script>
+    <script>
+        // Check for token to update navbar
+        const token = localStorage.getItem('token');
+        if (token) {
+            const userMenu = document.getElementById('user-menu');
+            if (userMenu) userMenu.style.display = 'flex';
+        }
+    </script>
+</body>
+
+</html>

@@ -37,6 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 2) Config / Estado
   // =========================
   const API_URL = "http://localhost:3000";
+  let myVehicles = [];
 
   // =========================
   // 3) Helpers
@@ -89,10 +90,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /**
    * Obtiene los vehículos del usuario autenticado.
-   * Requiere token JWT en localStorage con key "token".
+   * Requiere token JWT en sessionStorage con key "token".
    */
   async function getVehicles() {
-    const userToken = localStorage.getItem("token");
+    const userToken = sessionStorage.getItem("token");
     console.log("token?", !!userToken);
 
     // Sin token: no pedimos nada.
@@ -177,7 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
 
             <div class="admin-card-actions">
-              <button class="btn-icon" onclick="editVehicle(${vehicle._id})" title="Editar">
+              <button class="btn-icon" onclick="editVehicle('${vehicle._id}')" title="Editar">
                 <i class="fas fa-edit"></i>
               </button>
 
@@ -213,12 +214,12 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("vehicle-id").value = "";
 
     if (editId) {
-      const vehicle = myVehicles.find((v) => v.id === editId);
+      const vehicle = myVehicles.find((v) => v._id === editId);
       if (vehicle) {
         modalTitle.textContent = "Editar Vehículo";
 
         // Seteamos campos
-        document.getElementById("vehicle-id").value = vehicle.id;
+        document.getElementById("vehicle-id").value = vehicle._id;
         document.getElementById("v-brand").value = vehicle.brand;
         document.getElementById("v-model").value = vehicle.model;
         document.getElementById("v-year").value = vehicle.year;
@@ -369,7 +370,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Cambia el estado del vehiculo
   window.toggleStatus = async (id) => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     let vehicle;
 
     try {
@@ -419,7 +420,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const ok = confirm("¿Estás seguro de que quieres eliminar este vehículo?");
     if (!ok) return;
 
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     try {
       const response = await fetch('http://localhost:3000/vehicles/' + id, {
         method: 'DELETE',
@@ -452,7 +453,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Armamos el objeto con datos del form
     const vehicleData = {
-      id: idValue ? parseInt(idValue) : Date.now(), // temporal si no hay id
+      _id: idValue || null,
       brand: document.getElementById("v-brand").value,
       model: document.getElementById("v-model").value,
       year: parseInt(document.getElementById("v-year").value),
@@ -477,7 +478,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Si viene id, editamos en el array; si no, insertamos al inicio
     if (idValue) {
-      const index = myVehicles.findIndex((v) => v.id === parseInt(idValue));
+      const index = myVehicles.findIndex((v) => v._id === idValue);
       if (index !== -1) myVehicles[index] = vehicleData;
     } else {
       myVehicles.unshift(vehicleData);
@@ -496,7 +497,7 @@ document.addEventListener("DOMContentLoaded", () => {
   cancelModalBtn.addEventListener("click", closeModal);
 
   logoutBtn.addEventListener("click", () => {
-    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     window.location.href = "/home";
   });
 

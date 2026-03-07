@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.ok && data.access_token) {
                     // Guardar el token para futuras peticiones
-                    localStorage.setItem('token', data.access_token);
+                    sessionStorage.setItem('token', data.access_token);
                     window.location.href = "/home";
                 } else {
                     alert(data.message || "Error al iniciar sesión: Credenciales inválidas");

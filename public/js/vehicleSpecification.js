@@ -11,6 +11,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (vehicle) {
         // Displays de texto
+        if (document.getElementById('seller-name')) {
+            document.getElementById('seller-name').textContent = vehicle.ownerId;
+        }
+
         if (document.getElementById('v-title-display')) {
             document.getElementById('v-title-display').textContent = `${vehicle.brand} ${vehicle.model}`;
         }
@@ -59,7 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Manejo de la imagen
         const preview = document.getElementById('image-preview');
         const placeholder = document.getElementById('image-placeholder');
-        
+
         const imagePath = vehicle.imageUrl || vehicle.image;
         if (imagePath && preview) {
             const fullImageUrl = imagePath.startsWith('http') ? imagePath : `http://localhost:3000${imagePath}`;
@@ -67,14 +71,97 @@ document.addEventListener('DOMContentLoaded', async () => {
             preview.style.display = 'block';
             if (placeholder) placeholder.style.display = 'none';
         }
-        
-        // Vendedor
+
+        // Seller Info
         if (vehicle.user && vehicle.user.name) {
             const sellerName = document.getElementById('seller-name');
             const sellerAvatar = document.getElementById('seller-avatar');
             if (sellerName) sellerName.textContent = vehicle.user.name;
             if (sellerAvatar) sellerAvatar.textContent = vehicle.user.name.charAt(0).toUpperCase();
         }
+    }
+
+    // Auth check for navbar
+    const token = sessionStorage.getItem('token');
+    if (token) {
+        const authLink = document.getElementById('auth-link');
+        const registerLink = document.getElementById('register-link');
+        const userMenu = document.getElementById('user-menu');
+
+        if (authLink) authLink.style.display = 'none';
+        if (registerLink) registerLink.style.display = 'none';
+        if (userMenu) userMenu.style.display = 'flex';
+    }
+
+    document.getElementById('logout-btn')?.addEventListener('click', () => {
+        sessionStorage.removeItem('token');
+        window.location.reload();
+    });
+
+    // --- Contact & Chat Logic ---
+    const contactBtn = document.getElementById('contact-seller');
+    const chatWindow = document.getElementById('chat-window');
+    const closeChatBtn = document.getElementById('close-chat');
+    const sendMsgBtn = document.getElementById('send-msg');
+    const chatInput = document.getElementById('chat-input');
+    const chatMessages = document.getElementById('chat-messages');
+
+    if (contactBtn) {
+        contactBtn.addEventListener('click', () => {
+            const userToken = sessionStorage.getItem('token');
+
+            if (!userToken) {
+                // Si no está registrado, al login
+                window.location.href = '/login';
+            } else {
+                // Si está logueado, abrir chat
+                chatWindow.classList.add('active');
+
+                // Actualizar info del vendedor en el chat
+                const currentSellerName = document.getElementById('seller-name')?.textContent;
+                if (currentSellerName) {
+                    document.getElementById('chat-seller-name').textContent = currentSellerName;
+                    document.getElementById('chat-seller-avatar').textContent = currentSellerName.charAt(0).toUpperCase();
+                }
+            }
+        });
+    }
+
+    if (closeChatBtn) {
+        closeChatBtn.addEventListener('click', () => {
+            chatWindow.classList.remove('active');
+        });
+    }
+
+    if (sendMsgBtn && chatInput) {
+        const sendMessage = () => {
+            const text = chatInput.value.trim();
+            if (text === '') return;
+
+            // Crear burbuja de mensaje enviado
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message-sent';
+            msgDiv.textContent = text;
+            chatMessages.appendChild(msgDiv);
+
+            // Limpiar input y scroll
+            chatInput.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Mock de respuesta automática (después integrarás backend)
+            setTimeout(() => {
+                const replyDiv = document.createElement('div');
+                replyDiv.className = 'message-received';
+                replyDiv.textContent = "¡Entendido! Te responderé lo antes posible.";
+                chatMessages.appendChild(replyDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 1000);
+        };
+
+        sendMsgBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
     }
 });
 

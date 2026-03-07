@@ -105,9 +105,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="vehicle-footer" style="padding: 1.25rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
                     <div class="owner-info" style="font-size: 0.8rem; color: var(--text-secondary);">
                         Vendedor
-                        <span style="display: block; color: #fff; font-weight: 600; font-size: 0.9rem; margin-top: 0.1rem;">${vehicle.user ? vehicle.user.name : 'Vendedor Privado'}</span>
+                        <span style="display: block; color: #fff; font-weight: 600; font-size: 0.9rem; margin-top: 0.1rem;">${vehicle.ownerId ? vehicle.ownerId : 'Vendedor Privado'}</span>
                     </div>
-                    <button class="btn-share" onclick="shareVehicle(${vehicle.id})" title="Copiar enlace" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: var(--text-secondary); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <button class="btn-share" onclick="shareVehicle('${vehicle._id}')" title="Copiar enlace" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: var(--text-secondary); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
                         <i class="fas fa-share-alt"></i>
                     </button>
                 </div>
@@ -158,9 +158,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.shareVehicle = (id) => {
-        const url = `${window.location.origin}/vehicles/${id}`;
+        const url = `${window.location.origin}/specification?id=${id}`;
         navigator.clipboard.writeText(url).then(() => {
-            alert('¡Enlace copiado al portapapeles!');
         }).catch(err => {
             console.error('Error copying link:', err);
         });
@@ -181,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Auth check for navbar
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (token) {
         const authLink = document.getElementById('auth-link');
         const registerLink = document.getElementById('register-link');
@@ -193,9 +192,94 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('logout-btn')?.addEventListener('click', () => {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         window.location.reload();
     });
+
+    // --- Inbox Logic (Home Only for now) ---
+    const inboxBtn = document.getElementById('inbox-btn');
+    const inboxWindow = document.getElementById('inbox-window');
+    const closeInboxBtn = document.getElementById('close-inbox');
+    const inboxListView = document.getElementById('inbox-list-view');
+    const inboxChatView = document.getElementById('inbox-chat-view');
+    const backToListBtn = document.getElementById('back-to-list');
+
+    if (inboxBtn && inboxWindow) {
+        inboxBtn.addEventListener('click', () => {
+            inboxWindow.classList.toggle('active');
+            // Al abrir, siempre mostrar la lista primero
+            if (!inboxWindow.classList.contains('active')) {
+                inboxListView.style.display = 'flex';
+                inboxChatView.classList.remove('active');
+            }
+        });
+    }
+
+    if (closeInboxBtn && inboxWindow) {
+        closeInboxBtn.addEventListener('click', () => {
+            inboxWindow.classList.remove('active');
+        });
+    }
+
+    if (backToListBtn) {
+        backToListBtn.addEventListener('click', () => {
+            inboxListView.style.display = 'flex';
+            inboxChatView.classList.remove('active');
+        });
+    }
+
+    window.openChat = (name, initials, color = 'var(--primary)') => {
+        const activeName = document.getElementById('active-chat-name');
+        const activeAvatar = document.getElementById('active-chat-avatar');
+        const messagesCont = document.getElementById('inbox-chat-messages');
+
+        if (activeName) activeName.textContent = name;
+        if (activeAvatar) {
+            activeAvatar.textContent = initials;
+            activeAvatar.style.background = color;
+        }
+
+        // Limpiar y poner mensaje de bienvenida
+        if (messagesCont) {
+            messagesCont.innerHTML = `<div class="message-received">Hola, ¿cómo podemos ayudarte con el vehículo de ${name}?</div>`;
+        }
+
+        // Cambiar vista
+        inboxListView.style.display = 'none';
+        inboxChatView.classList.add('active');
+    };
+
+    // Envío de mensajes en Inbox
+    const sendInboxBtn = document.getElementById('btn-send-inbox');
+    const inboxInput = document.getElementById('inbox-chat-input');
+    const inboxChatMessages = document.getElementById('inbox-chat-messages');
+
+    if (sendInboxBtn && inboxInput) {
+        const sendInboxMessage = () => {
+            const text = inboxInput.value.trim();
+            if (text === '') return;
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message-sent';
+            msgDiv.textContent = text;
+            inboxChatMessages.appendChild(msgDiv);
+
+            inboxInput.value = '';
+            inboxChatMessages.scrollTop = inboxChatMessages.scrollHeight;
+        };
+
+        sendInboxBtn.addEventListener('click', sendInboxMessage);
+        inboxInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendInboxMessage();
+        });
+    }
+
+    // Toggle Inbox Visibility based on Auth
+    if (token && inboxBtn) {
+        inboxBtn.style.display = 'flex';
+    } else if (inboxBtn) {
+        inboxBtn.style.display = 'none';
+    }
 
     // Navbar scroll effect
     const navbar = document.querySelector('.navbar');
@@ -223,3 +307,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+

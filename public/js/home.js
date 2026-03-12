@@ -8,62 +8,69 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemsPerPage = 9;
 
     // Initial load
-    fetchVehicles();
+    fetchVehicles(false);
 
     // Filter form submission
     filterForm.addEventListener('submit', (e) => {
         e.preventDefault();
         currentPage = 1;
-        fetchVehicles();
+        fetchVehicles(true);
     });
 
-    async function fetchVehicles() {
+    async function fetchVehicles(useFilters = false) {
         showLoader();
 
         try {
-            const response = await fetch('http://localhost:3000/vehicles', {
+            let url = 'http://localhost:3000/vehicles';
+
+            if (useFilters) {
+                const formData = new FormData(filterForm);
+                const params = new URLSearchParams();
+
+                const brand = formData.get('brand')?.toString().trim();
+                const model = formData.get('model')?.toString().trim();
+                const minYear = formData.get('minYear')?.toString().trim();
+                const maxYear = formData.get('maxYear')?.toString().trim();
+                const minPrice = formData.get('minPrice')?.toString().trim();
+                const maxPrice = formData.get('maxPrice')?.toString().trim();
+                const status = formData.get('status')?.toString().trim();
+
+                if (brand) params.append('brand', brand);
+                if (model) params.append('model', model);
+                if (minYear) params.append('minYear', minYear);
+                if (maxYear) params.append('maxYear', maxYear);
+                if (minPrice) params.append('minPrice', minPrice);
+                if (maxPrice) params.append('maxPrice', maxPrice);
+                if (status) params.append('status', status);
+
+                url = `http://localhost:3000/vehicles/filter?${params.toString()}`;
+            }
+
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                 }
             });
+
             if (!response.ok) {
-                console.log("Error al cargar vehiculos");
+                console.log("Error al cargar vehículos");
+                return;
             }
 
-            const allVehicles = await response.json();
-            const formData = new FormData(filterForm);
-            const brandFilter = formData.get('brand')?.toLowerCase();
-            const modelFilter = formData.get('model')?.toLowerCase();
+            const vehicles = await response.json();
 
-            let filtered = allVehicles;
-
-            // Apply Filters
-            if (brandFilter) {
-                filtered = filtered.filter(v => v.brand.toLowerCase().includes(brandFilter));
-            }
-            if (modelFilter) {
-                filtered = filtered.filter(v => v.model.toLowerCase().includes(modelFilter));
-            }
-
-            // Pagination Logic
-            const total = filtered.length;
+            const total = vehicles.length;
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
-            const paginatedItems = filtered.slice(startIndex, endIndex);
+            const paginatedItems = vehicles.slice(startIndex, endIndex);
 
             renderVehicles(paginatedItems);
             renderPagination(total);
             resultsCount.textContent = `${total} Vehículos Encontrados`;
+
         } catch (error) {
             console.error('Error fetching vehicles:', error);
-            vehiclesGrid.innerHTML = `
-                <div class="no-results" style="grid-column: 1/-1; text-align: center; padding: 3rem;">
-                    <i class="fas fa-exclamation-circle" style="font-size: 2.5rem; color: var(--accent); margin-bottom: 1rem; display: block;"></i>
-                    <p style="font-size: 1.1rem; color: #fff; margin-bottom: 0.5rem;">No se pudieron cargar los vehículos</p>
-                    <p style="color: var(--text-secondary); font-size: 0.9rem;">Asegúrate de que el servidor esté encendido.</p>
-                </div>
-            `;
         }
     }
 

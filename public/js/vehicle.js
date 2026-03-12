@@ -22,6 +22,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const vehiclePlate = document.getElementById("v-plate");
       const vehicleImage = document.getElementById("v-image");
       const vehicleObservations = document.getElementById("v-observations");
+      if (vehicleObservations.value == "") {
+        vehicleObservations.value = "N/A"
+      }
 
       // Usamos FormData para poder enviar archivos multimedia
       const formData = new FormData();
@@ -58,7 +61,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
           if (response.ok) {
             window.location.reload();
-            alert("Vehículo actualizado correctamente");
           } else {
             const errorData = await response.json();
             alert(
@@ -84,7 +86,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
           if (response.ok) {
             window.location.reload();
-            alert("Vehículo publicado correctamente");
           } else {
             const errorData = await response.json();
             alert(

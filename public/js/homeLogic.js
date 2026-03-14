@@ -1,6 +1,6 @@
 const API_URL = 'http://localhost:3000';
 
-function buildVehicleUrl(filters = null, page = 1, limit = 9) {
+function buildVehicleUrl(filters = null, page = 1, limit = 8) {
     if (!filters) {
         return `${API_URL}/vehicles?page=${page}&limit=${limit}`;
     }
@@ -49,7 +49,7 @@ export function getFiltersFromForm(formElement) {
     };
 }
 
-export async function fetchVehicles(filters = null, page = 1, limit = 9) {
+export async function fetchVehicles(filters = null, page = 1, limit = 8) {
     const url = buildVehicleUrl(filters, page, limit);
 
     const response = await fetch(url, {

@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const paginationControls = document.getElementById('pagination-controls');
 
     let currentPage = 1;
-    const itemsPerPage = 9;
+    const itemsPerPage = 8;
     let currentFilters = null;
 
     loadVehicles();

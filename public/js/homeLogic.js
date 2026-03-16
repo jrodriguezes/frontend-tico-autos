@@ -7,27 +7,13 @@ function buildVehicleUrl(filters = null, page = 1, limit = 8) {
 
     const params = new URLSearchParams();
 
-    if (filters.brand) {
-        params.append('brand', filters.brand)
-    };
-    if (filters.model) {
-        params.append('model', filters.model)
-    };
-    if (filters.minYear) {
-        params.append('minYear', filters.minYear)
-    };
-    if (filters.maxYear) {
-        params.append('maxYear', filters.maxYear)
-    };
-    if (filters.minPrice) {
-        params.append('minPrice', filters.minPrice)
-    };
-    if (filters.maxPrice) {
-        params.append('maxPrice', filters.maxPrice)
-    };
-    if (filters.status) {
-        params.append('status', filters.status)
-    };
+    if (filters.brand) params.append('brand', filters.brand);
+    if (filters.model) params.append('model', filters.model);
+    if (filters.minYear) params.append('minYear', filters.minYear);
+    if (filters.maxYear) params.append('maxYear', filters.maxYear);
+    if (filters.minPrice) params.append('minPrice', filters.minPrice);
+    if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
+    if (filters.status) params.append('status', filters.status);
 
     params.append('page', page);
     params.append('limit', limit);
@@ -76,22 +62,104 @@ export function resolveVehicleImage(imagePath) {
     return imagePath;
 }
 
-async function getChatHistory() {
+export async function getCurrentUser() {
+    const token = sessionStorage.getItem('token');
+    if (!token) return null;
+
+    try {
+        const response = await fetch(`${API_URL}/auth/me`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error('Error obteniendo usuario actual:', error);
+        return null;
+    }
+}
+
+export async function fetchInboxChats() {
+    const token = sessionStorage.getItem('token');
+    if (!token) return [];
+
+    try {
+        const response = await fetch(`${API_URL}/chats/inbox`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al obtener inbox');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error obteniendo inbox:', error);
+        return [];
+    }
+}
+
+export async function getUserNameById(id) {
+    try {
+        const response = await fetch(`${API_URL}/users/userNameById/${id}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) return null;
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error obteniendo usuario:', error);
+        return null;
+    }
+}
+
+export async function fetchInboxChatHistory(vehicleId, interestedClientId) {
+    const token = sessionStorage.getItem('token');
+    if (!token) return [];
+
+    const params = new URLSearchParams();
+    params.append('vehicleId', vehicleId);
+    params.append('interestedClientId', interestedClientId);
+
+    try {
+        const response = await fetch(`${API_URL}/chats/history?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (error) {
+        console.error('Error obteniendo historial:', error);
+        return [];
+    }
+}
+
+export async function fetchChatByVehicleAndClient(vehicleId, interestedClientId) {
     const token = sessionStorage.getItem('token');
     if (!token) return null;
 
     const params = new URLSearchParams();
-
-    const getUrlParams = new URLSearchParams(window.location.search);
-    const vehicleId = getUrlParams.get('id');
-
     params.append('vehicleId', vehicleId);
-
-    const currentUser = await getCurrentUser()
-    params.append('interestedClientId', currentUser.numberId);
+    params.append('interestedClientId', interestedClientId);
 
     try {
-        const response = await fetch(`http://localhost:3000/chats/history?${params.toString()}`, {
+        const response = await fetch(`${API_URL}/chats?${params.toString()}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -101,165 +169,127 @@ async function getChatHistory() {
 
         if (!response.ok) return null;
 
-        return await response.json();
+        const text = await response.text();
+        if (!text) return null;
+
+        return JSON.parse(text);
     } catch (error) {
-        console.error('Error obteniendo historial de chat:', error);
+        console.error('Error obteniendo chat:', error);
         return null;
     }
 }
 
-async function sendMessageToBackend(text) {
+export async function fetchLastQuestion(chatId) {
+    const token = sessionStorage.getItem('token');
+    if (!token) return null;
+
     try {
-        const token = sessionStorage.getItem('token');
-        if (!token) { return null };
-
-        const urlParams = new URLSearchParams(window.location.search);
-
-        const vehicleId = urlParams.get('id');
-
-        const sellerId = document.getElementById('seller-id').textContent;
-
-        const currentUser = await getCurrentUser();
-
-        let status = "";
-        if (currentUser.numberId == sellerId) {
-            status = "owner";
-
-            const params = new URLSearchParams();
-            params.append('vehicleId', vehicleId);
-            params.append('interestedClientId', interestedClientId);
-
-            const chatId = await fetch(`http://localhost:3000/chats?${params.toString()}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-            })
-
-            try {
-                const lastQuestion = await fetch('http://localhost:3000/chats/lastQuestion', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        chatId: chatId.id,
-                    })
-                })
-
-                const response = await fetch(`http://localhost:3000/chats/message`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        questionId: lastQuestion.id,
-                        vehicleOwnerId: sellerId,
-                        content: text,
-                    })
-                })
-
-                if (!response.ok) {
-                    throw new Error(`Error en el servidor: ${response.status}`);
-                }
-
-                return await response.json();
-            } catch (error) {
-                console.error('Error obteniendo historial de chat:', error);
-                alert('Error al obtener el historial de chat.');
+        const response = await fetch(`${API_URL}/chats/lastQuestion?chatId=${chatId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
+        });
 
-        } else if (currentUser.numberId != sellerId) {
-            status = "client";
+        if (!response.ok) return null;
+
+        const text = await response.text();
+        return text ? JSON.parse(text) : null;
+    } catch (error) {
+        console.error('Error obteniendo última pregunta:', error);
+        return null;
+    }
+}
+
+export async function sendInboxMessage(currentInboxChat, text) {
+    if (!currentInboxChat) return null;
+
+    const token = sessionStorage.getItem('token');
+    if (!token) return null;
+
+    const currentUser = await getCurrentUser();
+    if (!currentUser) return null;
+
+    const { chatId, vehicleId, ownerId, interestedClientId } = currentInboxChat;
+    const isOwner = currentUser.numberId === Number(ownerId);
+
+    try {
+        if (isOwner) {
+            const lastQuestion = await fetchLastQuestion(chatId);
+            if (!lastQuestion) {
+                throw new Error('No se pudo obtener la última pregunta');
+            }
 
             const chat = {
-                vehicleId: vehicleId,
-                ownerId: sellerId,
-                interestedClientId: currentUser.numberId,
-                turn: status
-            }
+                vehicleId,
+                ownerId: Number(ownerId),
+                interestedClientId: Number(interestedClientId),
+                turn: 'owner'
+            };
 
-            const interestedClientId = currentUser.numberId;
-            const content = text;
+            const answer = {
+                questionId: lastQuestion._id || lastQuestion.id,
+                vehicleOwnerId: Number(ownerId),
+                content: text
+            };
 
-            const params = new URLSearchParams();
-            params.append('vehicleId', vehicleId);
-            params.append('interestedClientId', interestedClientId);
-
-            const chatId = await fetch(`http://localhost:3000/chats?${params.toString()}`, {
-                method: 'GET',
+            const response = await fetch(`${API_URL}/chats/message`, {
+                method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-            })
+                body: JSON.stringify({ chat, answer })
+            });
+
+            const respText = await response.text();
+
+            if (!response.ok) {
+                let errPayload;
+                try { errPayload = JSON.parse(respText); } catch { }
+                throw new Error(errPayload?.message || respText || `Error HTTP ${response.status}`);
+            }
+
+            return respText ? JSON.parse(respText) : {};
+        } else {
+            const chat = {
+                vehicleId,
+                ownerId: Number(ownerId),
+                interestedClientId: currentUser.numberId,
+                turn: 'client'
+            };
 
             const question = {
-                chatId: chatId.id,
-                interestedClientId: interestedClientId,
-                content: content,
+                chatId,
+                interestedClientId: currentUser.numberId,
+                content: text,
                 status: 'waiting'
+            };
+
+            const response = await fetch(`${API_URL}/chats/message`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ chat, question })
+            });
+
+            const respText = await response.text();
+
+            if (!response.ok) {
+                let errPayload;
+                try { errPayload = JSON.parse(respText); } catch { }
+                throw new Error(errPayload?.message || respText || `Error HTTP ${response.status}`);
             }
 
-            try {
-                const response = await fetch(`http://localhost:3000/chats/message`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        chat,
-                        question
-                    })
-                })
-
-                if (!response.ok) {
-                    throw new Error(`Error en el servidor: ${response.status}`);
-                }
-
-                return await response.json();
-
-            } catch (error) {
-                console.error('Error enviando mensaje:', error);
-                alert('Error al enviar el mensajee.');
-            }
+            return respText ? JSON.parse(respText) : {};
         }
-
     } catch (error) {
         console.error('Error enviando mensaje:', error);
-        alert('Error al enviar el mensajey.');
+        throw error;
     }
 }
 
-async function renderChatHistory() {
-    const chatMessages = document.getElementById('chat-messages');
-    if (!chatMessages) return;
-
-    const chatHistory = await getChatHistory();
-    if (!chatHistory) return;
-
-    chatMessages.innerHTML = '';
-
-    for (const message of chatHistory) {
-        if (message.question) {
-            const questionDiv = document.createElement('div');
-            questionDiv.className = 'message-sent';
-            questionDiv.textContent = message.question.content;
-            chatMessages.appendChild(questionDiv);
-        }
-
-        if (message.answer) {
-            const answerDiv = document.createElement('div');
-            answerDiv.className = 'message-received';
-            answerDiv.textContent = message.answer.content;
-            chatMessages.appendChild(answerDiv);
-        }
-    }
-
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
 export { API_URL };

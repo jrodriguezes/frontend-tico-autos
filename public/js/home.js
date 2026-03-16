@@ -1,4 +1,14 @@
-import { fetchVehicles, getFiltersFromForm, resolveVehicleImage } from './homeLogic.js';
+import {
+    fetchVehicles,
+    getFiltersFromForm,
+    resolveVehicleImage,
+    getCurrentUser,
+    fetchInboxChats,
+    fetchInboxChatHistory,
+    fetchChatByVehicleAndClient,
+    sendInboxMessage,
+    getUserNameById
+} from './homeLogic.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const filterForm = document.getElementById('filter-form');
@@ -6,13 +16,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     const resultsCount = document.getElementById('results-count');
     const paginationControls = document.getElementById('pagination-controls');
 
+    const inboxBtn = document.getElementById('inbox-btn');
+    const inboxWindow = document.getElementById('inbox-window');
+    const closeInboxBtn = document.getElementById('close-inbox');
+    const inboxListView = document.getElementById('inbox-list-view');
+    const inboxChatView = document.getElementById('inbox-chat-view');
+    const backToListBtn = document.getElementById('back-to-list');
+    const inboxListContainer = document.getElementById('inbox-list-container');
+    const sendInboxBtn = document.getElementById('btn-send-inbox');
+    const inboxInput = document.getElementById('inbox-chat-input');
+    const inboxChatMessages = document.getElementById('inbox-chat-messages');
+
     let currentPage = 1;
     const itemsPerPage = 8;
     let currentFilters = null;
+    let currentInboxChat = null;
+
+    const token = sessionStorage.getItem('token');
+    const currentUser = token ? await getCurrentUser() : null;
 
     loadVehicles();
+    setupNavbarAuth();
+    setupInbox();
+    setupScrollEffects();
 
-    filterForm.addEventListener('submit', async (e) => {
+    filterForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
         currentPage = 1;
         currentFilters = getFiltersFromForm(filterForm);
@@ -24,12 +52,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         try {
             const response = await fetchVehicles(currentFilters, currentPage, itemsPerPage);
-
-            renderVehicles(response.data);
+            await renderVehicles(response.data);
             renderPagination(response.total);
             resultsCount.textContent = `${response.total} Vehículos Encontrados`;
-
-
         } catch (error) {
             console.error('Error fetching vehicles:', error);
             vehiclesGrid.innerHTML = `
@@ -40,7 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    function renderVehicles(vehicles) {
+    async function renderVehicles(vehicles) {
         if (!vehicles || vehicles.length === 0) {
             vehiclesGrid.innerHTML = `
                 <div class="no-results" style="grid-column: 1/-1; text-align: center; padding: 3rem;">
@@ -50,8 +75,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        vehiclesGrid.innerHTML = vehicles.map(vehicle => {
+        const vehicleCardsHTML = await Promise.all(vehicles.map(async vehicle => {
             const imagePath = resolveVehicleImage(vehicle.imageUrl);
+
+            let ownerName = 'Vendedor Privado';
+            if (vehicle.ownerId) {
+                const userData = await getUserNameById(vehicle.ownerId);
+                if (userData && userData.name) {
+                    ownerName = userData.name;
+                } else if (userData && typeof userData === 'string') {
+                    ownerName = userData;
+                } else {
+                    ownerName = vehicle.ownerId;
+                }
+            }
 
             return `
                 <div class="vehicle-card" data-id="${vehicle._id}">
@@ -82,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="owner-info" style="font-size: 0.8rem; color: var(--text-secondary);">
                             Vendedor
                             <span style="display: block; color: #fff; font-weight: 600; font-size: 0.9rem; margin-top: 0.1rem;">
-                                ${vehicle.ownerId ? vehicle.ownerId : 'Vendedor Privado'}
+                                ${ownerName}
                             </span>
                         </div>
                         <button class="btn-share" onclick="shareVehicle('${vehicle._id}')" title="Copiar enlace" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: var(--text-secondary); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
@@ -91,7 +128,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 </div>
             `;
-        }).join('');
+        }));
+
+        vehiclesGrid.innerHTML = vehicleCardsHTML.join('');
     }
 
     function renderPagination(total) {
@@ -155,410 +194,246 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
     }
 
-    const token = sessionStorage.getItem('token');
-    if (token) {
+    function setupNavbarAuth() {
         const authLink = document.getElementById('auth-link');
         const registerLink = document.getElementById('register-link');
         const userMenu = document.getElementById('user-menu');
+        const logoutBtn = document.getElementById('logout-btn');
 
-        if (authLink) authLink.style.display = 'none';
-        if (registerLink) registerLink.style.display = 'none';
-        if (userMenu) userMenu.style.display = 'flex';
+        if (token) {
+            if (authLink) authLink.style.display = 'none';
+            if (registerLink) registerLink.style.display = 'none';
+            if (userMenu) userMenu.style.display = 'flex';
+        }
+
+        logoutBtn?.addEventListener('click', () => {
+            sessionStorage.removeItem('token');
+            window.location.reload();
+        });
+
+        if (token && inboxBtn) {
+            inboxBtn.style.display = 'flex';
+        } else if (inboxBtn) {
+            inboxBtn.style.display = 'none';
+        }
     }
 
-    document.getElementById('logout-btn')?.addEventListener('click', () => {
-        sessionStorage.removeItem('token');
-        window.location.reload();
-    });
-
-    const inboxBtn = document.getElementById('inbox-btn');
-    const inboxWindow = document.getElementById('inbox-window');
-    const closeInboxBtn = document.getElementById('close-inbox');
-    const inboxListView = document.getElementById('inbox-list-view');
-    const inboxChatView = document.getElementById('inbox-chat-view');
-    const backToListBtn = document.getElementById('back-to-list');
-    const inboxListContainer = document.getElementById('inbox-list-container');
-
-    try {
-        if (!token) throw new Error('No hay sesión iniciada');
-
-        let currentUserId = null;
-        const userRes = await fetch('http://localhost:3000/auth/me', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (userRes.ok) {
-            const user = await userRes.json();
-            currentUserId = user.numberId;
-        }
-
-        const chats = await fetch('http://localhost:3000/chats/inbox', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            }
-        });
-
-        if (!chats.ok) {
-            throw new Error('Error al obtener el historial de chat');
-        }
-
-        const data = await chats.json();
-
+    async function setupInbox() {
         if (inboxListContainer) {
+            await renderInboxList();
+        }
+
+        if (inboxBtn && inboxWindow) {
+            inboxBtn.addEventListener('click', () => {
+                inboxWindow.classList.toggle('active');
+                if (!inboxWindow.classList.contains('active')) {
+                    inboxListView.style.display = 'flex';
+                    inboxChatView.classList.remove('active');
+                }
+            });
+        }
+
+        closeInboxBtn?.addEventListener('click', () => {
+            inboxWindow?.classList.remove('active');
+        });
+
+        backToListBtn?.addEventListener('click', () => {
+            inboxListView.style.display = 'flex';
+            inboxChatView.classList.remove('active');
+        });
+
+        if (sendInboxBtn && inboxInput) {
+            const sendInboxMessageHandler = async () => {
+                const text = inboxInput.value.trim();
+                if (text === '') return;
+                if (!currentInboxChat) return;
+
+                try {
+                    await sendInboxMessage(currentInboxChat, text);
+                    inboxInput.value = '';
+                    await renderInboxChatHistory();
+                    await updateInboxChatAvailability();
+                } catch (error) {
+                    alert(`Error al enviar el mensaje: ${error.message}`);
+                }
+            };
+
+            sendInboxBtn.addEventListener('click', sendInboxMessageHandler);
+            inboxInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendInboxMessageHandler();
+            });
+        }
+    }
+
+    async function renderInboxList() {
+        if (!inboxListContainer) return;
+
+        try {
+            if (!token) throw new Error('No hay sesión iniciada');
+
+            const data = await fetchInboxChats();
+
             if (data.length === 0) {
                 inboxListContainer.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--text-secondary);">No tienes mensajes.</div>';
-            } else {
-                inboxListContainer.innerHTML = data.map(chat => {
-                    const isOwner = chat.ownerId === currentUserId;
-                    const displayName = isOwner ? chat.interestedClientName : chat.ownerName;
-                    
-                    const words = displayName.trim().split(' ');
-                    const initials = words.length > 1 
-                        ? (words[0][0] + words[1][0]).toUpperCase() 
-                        : displayName.substring(0, 2).toUpperCase();
-
-                    return `
-                        <div class="chat-item" onclick="openChat('${chat.chatId}', '${chat.vehicleId}', '${chat.ownerId}', '${chat.interestedClientId}', '${displayName}', '${initials}', 'var(--primary)')">
-                            <div class="chat-item-avatar" style="background: var(--primary);">${initials}</div>
-                            <div class="chat-item-info">
-                                <div class="chat-item-name">${displayName}</div>
-                                <div class="chat-item-last-msg">Vehículo: ${chat.vehiclePlate || 'Sin placa'}</div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div class="chat-item-time"></div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                return;
             }
-        }
 
-    } catch (error) {
-        console.error('Error obteniendo historial de chat:', error);
-        if (inboxListContainer) {
+            inboxListContainer.innerHTML = data.map(chat => {
+                const isOwner = Number(chat.ownerId) === Number(currentUser?.numberId);
+                const displayName = isOwner ? chat.interestedClientName : chat.ownerName;
+
+                const words = displayName.trim().split(' ');
+                const initials = words.length > 1
+                    ? (words[0][0] + words[1][0]).toUpperCase()
+                    : displayName.substring(0, 2).toUpperCase();
+
+                return `
+                    <div class="chat-item" data-chat='${JSON.stringify(chat).replace(/'/g, "&apos;")}'>
+                        <div class="chat-item-avatar" style="background: var(--primary);">${initials}</div>
+                        <div class="chat-item-info">
+                            <div class="chat-item-name">${displayName}</div>
+                            <div class="chat-item-last-msg">Vehículo: ${chat.vehiclePlate || 'Sin placa'}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="chat-item-time"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const chatItems = inboxListContainer.querySelectorAll('.chat-item');
+            chatItems.forEach(item => {
+                item.addEventListener('click', async () => {
+                    const chat = JSON.parse(item.dataset.chat.replace(/&apos;/g, "'"));
+                    await openChat(chat);
+                });
+            });
+
+        } catch (error) {
+            console.error('Error obteniendo historial de chat:', error);
             inboxListContainer.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--text-secondary);">Error al cargar los mensajes.</div>';
         }
     }
 
-    if (inboxBtn && inboxWindow) {
-        inboxBtn.addEventListener('click', () => {
-            inboxWindow.classList.toggle('active');
-            if (!inboxWindow.classList.contains('active')) {
-                inboxListView.style.display = 'flex';
-                inboxChatView.classList.remove('active');
-            }
-        });
-    }
-
-    if (closeInboxBtn && inboxWindow) {
-        closeInboxBtn.addEventListener('click', () => {
-            inboxWindow.classList.remove('active');
-        });
-    }
-
-    if (backToListBtn) {
-        backToListBtn.addEventListener('click', () => {
-            inboxListView.style.display = 'flex';
-            inboxChatView.classList.remove('active');
-        });
-    }
-
-    window.currentInboxChat = null;
-
-    window.openChat = async (chatId, vehicleId, ownerId, interestedClientId, name, initials, color = 'var(--primary)') => {
+    async function openChat(chat) {
         const activeName = document.getElementById('active-chat-name');
         const activeAvatar = document.getElementById('active-chat-avatar');
-        
-        if (activeName) activeName.textContent = name;
+
+        const isOwner = Number(chat.ownerId) === Number(currentUser?.numberId);
+        const displayName = isOwner ? chat.interestedClientName : chat.ownerName;
+        const words = displayName.trim().split(' ');
+        const initials = words.length > 1
+            ? (words[0][0] + words[1][0]).toUpperCase()
+            : displayName.substring(0, 2).toUpperCase();
+
+        if (activeName) activeName.textContent = displayName;
         if (activeAvatar) {
             activeAvatar.textContent = initials;
-            activeAvatar.style.background = color;
+            activeAvatar.style.background = 'var(--primary)';
         }
 
-        window.currentInboxChat = { chatId, vehicleId, ownerId, interestedClientId, name };
+        currentInboxChat = chat;
 
         inboxListView.style.display = 'none';
         inboxChatView.classList.add('active');
 
         await renderInboxChatHistory();
         await updateInboxChatAvailability();
-    };
-
-    async function getInboxChatHistory() {
-        if (!window.currentInboxChat) return null;
-        const { vehicleId, interestedClientId } = window.currentInboxChat;
-        const token = sessionStorage.getItem('token');
-        if (!token) return null;
-
-        const params = new URLSearchParams();
-        params.append('vehicleId', vehicleId);
-        params.append('interestedClientId', interestedClientId);
-
-        try {
-            const response = await fetch(`http://localhost:3000/chats/history?${params.toString()}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) return null;
-            return await response.json();
-        } catch (error) {
-            console.error('Error obteniendo historial de chat:', error);
-            return null;
-        }
-    }
-
-    async function sendInboxMessageToBackend(text) {
-        if (!window.currentInboxChat) return null;
-        const { chatId, vehicleId, ownerId, interestedClientId } = window.currentInboxChat;
-        const token = sessionStorage.getItem('token');
-        if (!token) return null;
-
-        try {
-            const userRes = await fetch('http://localhost:3000/auth/me', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const currentUser = await userRes.json();
-            
-            const isOwner = currentUser.numberId === Number(ownerId);
-
-            if (isOwner) {
-                const lastQuestion = await fetch(`http://localhost:3000/chats/lastQuestion?chatId=${chatId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                const lastQuestionText = await lastQuestion.text();
-                if (!lastQuestion.ok) throw new Error(`Error en última pregunta: ${lastQuestionText}`);
-                
-                const lastQuestionData = lastQuestionText ? JSON.parse(lastQuestionText) : null;
-                if (!lastQuestionData) throw new Error('La última pregunta regresó vacía del backend');
-
-                const chat = {
-                    vehicleId: vehicleId,
-                    ownerId: Number(ownerId),
-                    interestedClientId: Number(interestedClientId),
-                    turn: "owner"
-                };
-
-                const answer = {
-                    questionId: lastQuestionData._id || lastQuestionData.id,
-                    vehicleOwnerId: Number(ownerId),
-                    content: text
-                };
-
-                const response = await fetch(`http://localhost:3000/chats/message`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        chat: chat,
-                        answer: answer
-                    })
-                });
-
-                const respText = await response.text();
-                if (!response.ok) {
-                    let errPayload;
-                    try { errPayload = JSON.parse(respText); } catch(e){}
-                    throw new Error(errPayload?.message || respText || `Error HTTP ${response.status}`);
-                }
-                return respText ? JSON.parse(respText) : {};
-            } else {
-                const chat = {
-                    vehicleId: vehicleId,
-                    ownerId: Number(ownerId),
-                    interestedClientId: currentUser.numberId,
-                    turn: "client"
-                };
-
-                const question = {
-                    chatId: chatId,
-                    interestedClientId: currentUser.numberId,
-                    content: text,
-                    status: 'waiting'
-                };
-
-                const response = await fetch(`http://localhost:3000/chats/message`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ chat, question })
-                });
-
-                const respText = await response.text();
-                if (!response.ok) {
-                    let errPayload;
-                    try { errPayload = JSON.parse(respText); } catch(e){}
-                    throw new Error(errPayload?.message || respText || `Error HTTP ${response.status}`);
-                }
-                return respText ? JSON.parse(respText) : {};
-            }
-        } catch (error) {
-            console.error('Error enviando mensaje:', error);
-            alert(`Error al enviar el mensaje: ${error.message}`);
-            return null;
-        }
     }
 
     async function renderInboxChatHistory() {
-        const chatMessages = document.getElementById('inbox-chat-messages');
-        if (!chatMessages || !window.currentInboxChat) return;
+        if (!inboxChatMessages || !currentInboxChat) return;
 
-        chatMessages.innerHTML = '<div style="text-align: center; padding: 1rem;"><i class="fas fa-spinner fa-spin"></i> Cargando mensajes...</div>';
+        const chatHistory = await fetchInboxChatHistory(
+            currentInboxChat.vehicleId,
+            currentInboxChat.interestedClientId
+        );
 
-        const chatHistory = await getInboxChatHistory();
-        if (!chatHistory) {
-             chatMessages.innerHTML = '';
-             return;
+        inboxChatMessages.innerHTML = '';
+
+        if (!chatHistory.length) {
+            return;
         }
 
-        chatMessages.innerHTML = '';
-
-        const token = sessionStorage.getItem('token');
-        const userRes = await fetch('http://localhost:3000/auth/me', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const currentUser = await userRes.json();
-        const { ownerId } = window.currentInboxChat;
-        const isOwner = currentUser.numberId === Number(ownerId);
+        const isOwner = Number(currentUser?.numberId) === Number(currentInboxChat.ownerId);
 
         for (const message of chatHistory) {
             if (message.question) {
                 const questionDiv = document.createElement('div');
                 questionDiv.className = isOwner ? 'message-received' : 'message-sent';
                 questionDiv.textContent = message.question.content;
-                chatMessages.appendChild(questionDiv);
+                inboxChatMessages.appendChild(questionDiv);
             }
 
             if (message.answer) {
                 const answerDiv = document.createElement('div');
                 answerDiv.className = isOwner ? 'message-sent' : 'message-received';
                 answerDiv.textContent = message.answer.content;
-                chatMessages.appendChild(answerDiv);
+                inboxChatMessages.appendChild(answerDiv);
             }
         }
 
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        inboxChatMessages.scrollTop = inboxChatMessages.scrollHeight;
     }
 
     async function updateInboxChatAvailability() {
         const chatInput = document.getElementById('inbox-chat-input');
         const sendMsgBtn = document.getElementById('btn-send-inbox');
-        if (!chatInput || !sendMsgBtn || !window.currentInboxChat) return;
-
-        const { vehicleId, interestedClientId, ownerId } = window.currentInboxChat;
-        const token = sessionStorage.getItem('token');
-        if (!token) return;
+        if (!chatInput || !sendMsgBtn || !currentInboxChat) return;
 
         try {
-            const userRes = await fetch('http://localhost:3000/auth/me', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const currentUser = await userRes.json();
-            const isOwner = currentUser.numberId === Number(ownerId);
+            const chat = await fetchChatByVehicleAndClient(
+                currentInboxChat.vehicleId,
+                currentInboxChat.interestedClientId
+            );
 
-            const params = new URLSearchParams();
-            params.append('vehicleId', vehicleId);
-            params.append('interestedClientId', interestedClientId);
+            if (!chat) return;
 
-            const response = await fetch(`http://localhost:3000/chats?${params.toString()}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-            });
-
-            if (!response.ok) return;
-            const textResponse = await response.text();
-            if (!textResponse) return;
-            
-            const chat = JSON.parse(textResponse);
+            const isOwner = Number(currentUser?.numberId) === Number(currentInboxChat.ownerId);
 
             if (isOwner) {
                 const canWrite = chat.turn === 'owner';
                 chatInput.disabled = !canWrite;
                 sendMsgBtn.disabled = !canWrite;
-                chatInput.placeholder = canWrite ? 'Escribe una respuesta...' : 'Debes esperar a que el cliente escriba';
+                chatInput.placeholder = canWrite
+                    ? 'Escribe una respuesta...'
+                    : 'Debes esperar a que el cliente escriba';
             } else {
                 const canWrite = chat.turn === 'client';
                 chatInput.disabled = !canWrite;
                 sendMsgBtn.disabled = !canWrite;
-                chatInput.placeholder = canWrite ? 'Escribe un mensaje...' : 'Debes esperar a que el vendedor responda';
+                chatInput.placeholder = canWrite
+                    ? 'Escribe un mensaje...'
+                    : 'Debes esperar a que el vendedor responda';
             }
         } catch (error) {
-            console.error(error);
+            console.error('Error actualizando disponibilidad del chat:', error);
         }
     }
 
-    const sendInboxBtn = document.getElementById('btn-send-inbox');
-    const inboxInput = document.getElementById('inbox-chat-input');
-    const inboxChatMessages = document.getElementById('inbox-chat-messages');
-
-    if (sendInboxBtn && inboxInput) {
-        const sendInboxMessage = async () => {
-            const text = inboxInput.value.trim();
-            if (text === '') return;
-
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'message-sent';
-            msgDiv.textContent = text;
-            inboxChatMessages.appendChild(msgDiv);
-
-            inboxInput.value = '';
-            inboxChatMessages.scrollTop = inboxChatMessages.scrollHeight;
-
-            const response = await sendInboxMessageToBackend(text);
-            if(response) {
-                 await renderInboxChatHistory();
-                 await updateInboxChatAvailability();
-            }
-        };
-
-        sendInboxBtn.addEventListener('click', sendInboxMessage);
-        inboxInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendInboxMessage();
-        });
-    }
-
-    if (token && inboxBtn) {
-        inboxBtn.style.display = 'flex';
-    } else if (inboxBtn) {
-        inboxBtn.style.display = 'none';
-    }
-
-    const navbar = document.querySelector('.navbar');
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 50) {
-            navbar?.classList.add('scrolled');
-        } else {
-            navbar?.classList.remove('scrolled');
-        }
-    });
-
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            const targetId = this.getAttribute('href');
-            if (targetId === '#') return;
-
-            e.preventDefault();
-            const target = document.querySelector(targetId);
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth'
-                });
+    function setupScrollEffects() {
+        const navbar = document.querySelector('.navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar?.classList.add('scrolled');
+            } else {
+                navbar?.classList.remove('scrolled');
             }
         });
-    });
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+
+                e.preventDefault();
+                const target = document.querySelector(targetId);
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    }
 });

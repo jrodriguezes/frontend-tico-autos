@@ -1,6 +1,6 @@
 import { fetchVehicles, getFiltersFromForm, resolveVehicleImage } from './homeLogic.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const filterForm = document.getElementById('filter-form');
     const vehiclesGrid = document.getElementById('vehicles-grid');
     const resultsCount = document.getElementById('results-count');
@@ -177,6 +177,68 @@ document.addEventListener('DOMContentLoaded', () => {
     const inboxListView = document.getElementById('inbox-list-view');
     const inboxChatView = document.getElementById('inbox-chat-view');
     const backToListBtn = document.getElementById('back-to-list');
+    const inboxListContainer = document.getElementById('inbox-list-container');
+
+    try {
+        if (!token) throw new Error('No hay sesión iniciada');
+
+        let currentUserId = null;
+        const userRes = await fetch('http://localhost:3000/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (userRes.ok) {
+            const user = await userRes.json();
+            currentUserId = user.numberId;
+        }
+
+        const chats = await fetch('http://localhost:3000/chats/inbox', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            }
+        });
+
+        if (!chats.ok) {
+            throw new Error('Error al obtener el historial de chat');
+        }
+
+        const data = await chats.json();
+
+        if (inboxListContainer) {
+            if (data.length === 0) {
+                inboxListContainer.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--text-secondary);">No tienes mensajes.</div>';
+            } else {
+                inboxListContainer.innerHTML = data.map(chat => {
+                    const isOwner = chat.ownerId === currentUserId;
+                    const displayName = isOwner ? chat.interestedClientName : chat.ownerName;
+                    
+                    const words = displayName.trim().split(' ');
+                    const initials = words.length > 1 
+                        ? (words[0][0] + words[1][0]).toUpperCase() 
+                        : displayName.substring(0, 2).toUpperCase();
+
+                    return `
+                        <div class="chat-item" onclick="openChat('${chat.chatId}', '${chat.vehicleId}', '${chat.ownerId}', '${chat.interestedClientId}', '${displayName}', '${initials}', 'var(--primary)')">
+                            <div class="chat-item-avatar" style="background: var(--primary);">${initials}</div>
+                            <div class="chat-item-info">
+                                <div class="chat-item-name">${displayName}</div>
+                                <div class="chat-item-last-msg">Vehículo: ${chat.vehiclePlate || 'Sin placa'}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="chat-item-time"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+    } catch (error) {
+        console.error('Error obteniendo historial de chat:', error);
+        if (inboxListContainer) {
+            inboxListContainer.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--text-secondary);">Error al cargar los mensajes.</div>';
+        }
+    }
 
     if (inboxBtn && inboxWindow) {
         inboxBtn.addEventListener('click', () => {
@@ -201,31 +263,251 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.openChat = (name, initials, color = 'var(--primary)') => {
+    window.currentInboxChat = null;
+
+    window.openChat = async (chatId, vehicleId, ownerId, interestedClientId, name, initials, color = 'var(--primary)') => {
         const activeName = document.getElementById('active-chat-name');
         const activeAvatar = document.getElementById('active-chat-avatar');
-        const messagesCont = document.getElementById('inbox-chat-messages');
-
+        
         if (activeName) activeName.textContent = name;
         if (activeAvatar) {
             activeAvatar.textContent = initials;
             activeAvatar.style.background = color;
         }
 
-        if (messagesCont) {
-            messagesCont.innerHTML = `<div class="message-received">Hola, ¿cómo podemos ayudarte con el vehículo de ${name}?</div>`;
-        }
+        window.currentInboxChat = { chatId, vehicleId, ownerId, interestedClientId, name };
 
         inboxListView.style.display = 'none';
         inboxChatView.classList.add('active');
+
+        await renderInboxChatHistory();
+        await updateInboxChatAvailability();
     };
+
+    async function getInboxChatHistory() {
+        if (!window.currentInboxChat) return null;
+        const { vehicleId, interestedClientId } = window.currentInboxChat;
+        const token = sessionStorage.getItem('token');
+        if (!token) return null;
+
+        const params = new URLSearchParams();
+        params.append('vehicleId', vehicleId);
+        params.append('interestedClientId', interestedClientId);
+
+        try {
+            const response = await fetch(`http://localhost:3000/chats/history?${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) return null;
+            return await response.json();
+        } catch (error) {
+            console.error('Error obteniendo historial de chat:', error);
+            return null;
+        }
+    }
+
+    async function sendInboxMessageToBackend(text) {
+        if (!window.currentInboxChat) return null;
+        const { chatId, vehicleId, ownerId, interestedClientId } = window.currentInboxChat;
+        const token = sessionStorage.getItem('token');
+        if (!token) return null;
+
+        try {
+            const userRes = await fetch('http://localhost:3000/auth/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const currentUser = await userRes.json();
+            
+            const isOwner = currentUser.numberId === Number(ownerId);
+
+            if (isOwner) {
+                const lastQuestion = await fetch(`http://localhost:3000/chats/lastQuestion?chatId=${chatId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const lastQuestionText = await lastQuestion.text();
+                if (!lastQuestion.ok) throw new Error(`Error en última pregunta: ${lastQuestionText}`);
+                
+                const lastQuestionData = lastQuestionText ? JSON.parse(lastQuestionText) : null;
+                if (!lastQuestionData) throw new Error('La última pregunta regresó vacía del backend');
+
+                const chat = {
+                    vehicleId: vehicleId,
+                    ownerId: Number(ownerId),
+                    interestedClientId: Number(interestedClientId),
+                    turn: "owner"
+                };
+
+                const answer = {
+                    questionId: lastQuestionData._id || lastQuestionData.id,
+                    vehicleOwnerId: Number(ownerId),
+                    content: text
+                };
+
+                const response = await fetch(`http://localhost:3000/chats/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        chat: chat,
+                        answer: answer
+                    })
+                });
+
+                const respText = await response.text();
+                if (!response.ok) {
+                    let errPayload;
+                    try { errPayload = JSON.parse(respText); } catch(e){}
+                    throw new Error(errPayload?.message || respText || `Error HTTP ${response.status}`);
+                }
+                return respText ? JSON.parse(respText) : {};
+            } else {
+                const chat = {
+                    vehicleId: vehicleId,
+                    ownerId: Number(ownerId),
+                    interestedClientId: currentUser.numberId,
+                    turn: "client"
+                };
+
+                const question = {
+                    chatId: chatId,
+                    interestedClientId: currentUser.numberId,
+                    content: text,
+                    status: 'waiting'
+                };
+
+                const response = await fetch(`http://localhost:3000/chats/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ chat, question })
+                });
+
+                const respText = await response.text();
+                if (!response.ok) {
+                    let errPayload;
+                    try { errPayload = JSON.parse(respText); } catch(e){}
+                    throw new Error(errPayload?.message || respText || `Error HTTP ${response.status}`);
+                }
+                return respText ? JSON.parse(respText) : {};
+            }
+        } catch (error) {
+            console.error('Error enviando mensaje:', error);
+            alert(`Error al enviar el mensaje: ${error.message}`);
+            return null;
+        }
+    }
+
+    async function renderInboxChatHistory() {
+        const chatMessages = document.getElementById('inbox-chat-messages');
+        if (!chatMessages || !window.currentInboxChat) return;
+
+        chatMessages.innerHTML = '<div style="text-align: center; padding: 1rem;"><i class="fas fa-spinner fa-spin"></i> Cargando mensajes...</div>';
+
+        const chatHistory = await getInboxChatHistory();
+        if (!chatHistory) {
+             chatMessages.innerHTML = '';
+             return;
+        }
+
+        chatMessages.innerHTML = '';
+
+        const token = sessionStorage.getItem('token');
+        const userRes = await fetch('http://localhost:3000/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const currentUser = await userRes.json();
+        const { ownerId } = window.currentInboxChat;
+        const isOwner = currentUser.numberId === Number(ownerId);
+
+        for (const message of chatHistory) {
+            if (message.question) {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = isOwner ? 'message-received' : 'message-sent';
+                questionDiv.textContent = message.question.content;
+                chatMessages.appendChild(questionDiv);
+            }
+
+            if (message.answer) {
+                const answerDiv = document.createElement('div');
+                answerDiv.className = isOwner ? 'message-sent' : 'message-received';
+                answerDiv.textContent = message.answer.content;
+                chatMessages.appendChild(answerDiv);
+            }
+        }
+
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    async function updateInboxChatAvailability() {
+        const chatInput = document.getElementById('inbox-chat-input');
+        const sendMsgBtn = document.getElementById('btn-send-inbox');
+        if (!chatInput || !sendMsgBtn || !window.currentInboxChat) return;
+
+        const { vehicleId, interestedClientId, ownerId } = window.currentInboxChat;
+        const token = sessionStorage.getItem('token');
+        if (!token) return;
+
+        try {
+            const userRes = await fetch('http://localhost:3000/auth/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const currentUser = await userRes.json();
+            const isOwner = currentUser.numberId === Number(ownerId);
+
+            const params = new URLSearchParams();
+            params.append('vehicleId', vehicleId);
+            params.append('interestedClientId', interestedClientId);
+
+            const response = await fetch(`http://localhost:3000/chats?${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+            });
+
+            if (!response.ok) return;
+            const textResponse = await response.text();
+            if (!textResponse) return;
+            
+            const chat = JSON.parse(textResponse);
+
+            if (isOwner) {
+                const canWrite = chat.turn === 'owner';
+                chatInput.disabled = !canWrite;
+                sendMsgBtn.disabled = !canWrite;
+                chatInput.placeholder = canWrite ? 'Escribe una respuesta...' : 'Debes esperar a que el cliente escriba';
+            } else {
+                const canWrite = chat.turn === 'client';
+                chatInput.disabled = !canWrite;
+                sendMsgBtn.disabled = !canWrite;
+                chatInput.placeholder = canWrite ? 'Escribe un mensaje...' : 'Debes esperar a que el vendedor responda';
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
 
     const sendInboxBtn = document.getElementById('btn-send-inbox');
     const inboxInput = document.getElementById('inbox-chat-input');
     const inboxChatMessages = document.getElementById('inbox-chat-messages');
 
     if (sendInboxBtn && inboxInput) {
-        const sendInboxMessage = () => {
+        const sendInboxMessage = async () => {
             const text = inboxInput.value.trim();
             if (text === '') return;
 
@@ -236,6 +518,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             inboxInput.value = '';
             inboxChatMessages.scrollTop = inboxChatMessages.scrollHeight;
+
+            const response = await sendInboxMessageToBackend(text);
+            if(response) {
+                 await renderInboxChatHistory();
+                 await updateInboxChatAvailability();
+            }
         };
 
         sendInboxBtn.addEventListener('click', sendInboxMessage);

@@ -76,4 +76,190 @@ export function resolveVehicleImage(imagePath) {
     return imagePath;
 }
 
+async function getChatHistory() {
+    const token = sessionStorage.getItem('token');
+    if (!token) return null;
+
+    const params = new URLSearchParams();
+
+    const getUrlParams = new URLSearchParams(window.location.search);
+    const vehicleId = getUrlParams.get('id');
+
+    params.append('vehicleId', vehicleId);
+
+    const currentUser = await getCurrentUser()
+    params.append('interestedClientId', currentUser.numberId);
+
+    try {
+        const response = await fetch(`http://localhost:3000/chats/history?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) return null;
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error obteniendo historial de chat:', error);
+        return null;
+    }
+}
+
+async function sendMessageToBackend(text) {
+    try {
+        const token = sessionStorage.getItem('token');
+        if (!token) { return null };
+
+        const urlParams = new URLSearchParams(window.location.search);
+
+        const vehicleId = urlParams.get('id');
+
+        const sellerId = document.getElementById('seller-id').textContent;
+
+        const currentUser = await getCurrentUser();
+
+        let status = "";
+        if (currentUser.numberId == sellerId) {
+            status = "owner";
+
+            const params = new URLSearchParams();
+            params.append('vehicleId', vehicleId);
+            params.append('interestedClientId', interestedClientId);
+
+            const chatId = await fetch(`http://localhost:3000/chats?${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+            })
+
+            try {
+                const lastQuestion = await fetch('http://localhost:3000/chats/lastQuestion', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        chatId: chatId.id,
+                    })
+                })
+
+                const response = await fetch(`http://localhost:3000/chats/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        questionId: lastQuestion.id,
+                        vehicleOwnerId: sellerId,
+                        content: text,
+                    })
+                })
+
+                if (!response.ok) {
+                    throw new Error(`Error en el servidor: ${response.status}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error('Error obteniendo historial de chat:', error);
+                alert('Error al obtener el historial de chat.');
+            }
+
+        } else if (currentUser.numberId != sellerId) {
+            status = "client";
+
+            const chat = {
+                vehicleId: vehicleId,
+                ownerId: sellerId,
+                interestedClientId: currentUser.numberId,
+                turn: status
+            }
+
+            const interestedClientId = currentUser.numberId;
+            const content = text;
+
+            const params = new URLSearchParams();
+            params.append('vehicleId', vehicleId);
+            params.append('interestedClientId', interestedClientId);
+
+            const chatId = await fetch(`http://localhost:3000/chats?${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+            })
+
+            const question = {
+                chatId: chatId.id,
+                interestedClientId: interestedClientId,
+                content: content,
+                status: 'waiting'
+            }
+
+            try {
+                const response = await fetch(`http://localhost:3000/chats/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        chat,
+                        question
+                    })
+                })
+
+                if (!response.ok) {
+                    throw new Error(`Error en el servidor: ${response.status}`);
+                }
+
+                return await response.json();
+
+            } catch (error) {
+                console.error('Error enviando mensaje:', error);
+                alert('Error al enviar el mensajee.');
+            }
+        }
+
+    } catch (error) {
+        console.error('Error enviando mensaje:', error);
+        alert('Error al enviar el mensajey.');
+    }
+}
+
+async function renderChatHistory() {
+    const chatMessages = document.getElementById('chat-messages');
+    if (!chatMessages) return;
+
+    const chatHistory = await getChatHistory();
+    if (!chatHistory) return;
+
+    chatMessages.innerHTML = '';
+
+    for (const message of chatHistory) {
+        if (message.question) {
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'message-sent';
+            questionDiv.textContent = message.question.content;
+            chatMessages.appendChild(questionDiv);
+        }
+
+        if (message.answer) {
+            const answerDiv = document.createElement('div');
+            answerDiv.className = 'message-received';
+            answerDiv.textContent = message.answer.content;
+            chatMessages.appendChild(answerDiv);
+        }
+    }
+
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
 export { API_URL };

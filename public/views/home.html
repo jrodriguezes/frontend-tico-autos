@@ -136,42 +136,8 @@
                 <h3 style="font-size: 1.1rem; font-weight: 700;">Mensajes</h3>
                 <button id="close-inbox" class="btn-close-chat">&times;</button>
             </div>
-            <div class="inbox-list">
-                <!-- Mocked Chat 1 -->
-                <div class="chat-item" onclick="openChat('Juan Perez', 'JP')">
-                    <div class="chat-item-avatar">JP</div>
-                    <div class="chat-item-info">
-                        <div class="chat-item-name">Juan Perez</div>
-                        <div class="chat-item-last-msg">¿Sigue disponible el Toyota Corolla? Me interesa verlo mañana.
-                        </div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div class="chat-item-time">10:45 AM</div>
-                        <div class="unread-badge"></div>
-                    </div>
-                </div>
-                <!-- Mocked Chat 2 -->
-                <div class="chat-item" onclick="openChat('Maria Lopez', 'ML', 'var(--accent)')">
-                    <div class="chat-item-avatar" style="background: var(--accent);">ML</div>
-                    <div class="chat-item-info">
-                        <div class="chat-item-name">Maria Lopez</div>
-                        <div class="chat-item-last-msg">¿El precio es negociable? Tengo el dinero en mano.</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div class="chat-item-time">Ayer</div>
-                    </div>
-                </div>
-                <!-- Mocked Chat 3 -->
-                <div class="chat-item" onclick="openChat('Carlos Rodriguez', 'CR', '#10b981')">
-                    <div class="chat-item-avatar" style="background: #10b981;">CR</div>
-                    <div class="chat-item-info">
-                        <div class="chat-item-name">Carlos Rodriguez</div>
-                        <div class="chat-item-last-msg">Muchas gracias por la información, lo voy a pensar.</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div class="chat-item-time">Lunes</div>
-                    </div>
-                </div>
+            <div class="inbox-list" id="inbox-list-container">
+                <!-- Chats will be injected here by JS -->
             </div>
         </div>
 
